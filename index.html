@@ -1,529 +1,735 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TugXR — Jala la Cuerda</title>
+
+<!-- A-Frame -->
 <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --cl:#00d4ff;--cr:#ff4d6d;--cc:#a8ff3e;
-  --bg:#050a0f;--sur:#0d1a24;--bor:#1a3a50;--txt:#e0f0ff;--mut:#4a7090;
-  --gl:0 0 12px #00d4ff88;--gr:0 0 12px #ff4d6d88;--gc:0 0 12px #a8ff3e88;
-}
-html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'Rajdhani',sans-serif;}
+  /* ── Fuentes ── */
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
 
-/* ── OVERLAY ── */
-#overlay{
-  position:fixed;inset:0;z-index:200;
-  display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(ellipse at 50% 0%,#0a2030,#050a0f 70%);
-}
-.card{
-  background:var(--sur);border:1px solid var(--bor);border-radius:16px;
-  padding:2.5rem 2.8rem;width:min(420px,92vw);text-align:center;
-  box-shadow:0 0 60px #00d4ff18,inset 0 1px 0 #ffffff0a;
-  animation:fadeUp .5s ease both;
-}
-@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-.logo{
-  font-family:'Orbitron',sans-serif;font-size:2.2rem;font-weight:900;letter-spacing:.12em;
-  background:linear-gradient(90deg,var(--cl),var(--cc),var(--cr));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.3rem;
-}
-.tagline{font-size:.95rem;color:var(--mut);letter-spacing:.2em;text-transform:uppercase;margin-bottom:2rem;}
-label{display:block;text-align:left;font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--mut);margin-bottom:.5rem;}
-input[type=text]{
-  width:100%;background:#081520;border:1px solid var(--bor);color:var(--txt);
-  font-family:'Rajdhani',sans-serif;font-size:1.1rem;padding:.75rem 1rem;
-  border-radius:8px;outline:none;transition:border-color .2s,box-shadow .2s;margin-bottom:1.5rem;
-}
-input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
-.side-picker{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
-.side-btn{
-  padding:.9rem;border-radius:10px;border:2px solid transparent;
-  font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;
-  letter-spacing:.1em;cursor:pointer;transition:all .2s;
-}
-.side-btn.left{color:var(--cl);border-color:var(--cl);background:#00d4ff10;}
-.side-btn.right{color:var(--cr);border-color:var(--cr);background:#ff4d6d10;}
-.side-btn.left.selected{background:#00d4ff22;box-shadow:var(--gl);}
-.side-btn.right.selected{background:#ff4d6d22;box-shadow:var(--gr);}
-.enter-btn{
-  width:100%;background:linear-gradient(135deg,#00d4ff22,#a8ff3e22);
-  border:1px solid var(--cc);color:var(--cc);font-family:'Orbitron',sans-serif;
-  font-size:.9rem;font-weight:700;letter-spacing:.15em;padding:.9rem;
-  border-radius:10px;cursor:pointer;transition:all .2s;
-}
-.enter-btn:hover{background:#a8ff3e22;box-shadow:var(--gc);}
-.enter-btn:disabled{opacity:.35;cursor:not-allowed;}
-#err-msg{font-size:.9rem;color:#ff6b6b;min-height:1.2rem;margin-top:.6rem;}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── GAME SCREEN ── */
-#game{position:fixed;inset:0;display:none;flex-direction:column;}
+  :root {
+    --c-bg:      #050a0f;
+    --c-surface: #0d1a24;
+    --c-border:  #1a3a50;
+    --c-left:    #00d4ff;
+    --c-right:   #ff4d6d;
+    --c-center:  #a8ff3e;
+    --c-text:    #e0f0ff;
+    --c-muted:   #4a7090;
+    --glow-l:    0 0 12px #00d4ff88;
+    --glow-r:    0 0 12px #ff4d6d88;
+    --glow-c:    0 0 12px #a8ff3e88;
+  }
 
-/* Canvas SVG de la balanza */
-#balance-canvas{
-  position:absolute;inset:0;z-index:1;
-  background:radial-gradient(ellipse at 50% 30%,#0a1e30 0%,#050a0f 70%);
-}
+  html, body { height: 100%; overflow: hidden; background: var(--c-bg); }
 
-/* Estrellas CSS */
-#stars-bg{position:absolute;inset:0;z-index:0;overflow:hidden;}
-.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) infinite alternate;}
-@keyframes twinkle{from{opacity:.2}to{opacity:1}}
+  /* ── OVERLAY PRINCIPAL ── */
+  #overlay {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 50% 0%, #0a2030 0%, #050a0f 70%);
+  }
 
-/* HUD */
-#hud{
-  position:absolute;inset:0;z-index:10;pointer-events:none;
-  display:flex;flex-direction:column;justify-content:space-between;
-}
-.hud-top{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:.8rem 1.4rem;
-  background:linear-gradient(180deg,#050a0fdd 0%,transparent 100%);
-}
-.hud-side{font-family:'Orbitron',sans-serif;}
-.hud-side .num{font-size:2.4rem;font-weight:900;line-height:1;}
-.hud-side .lbl{font-size:.6rem;letter-spacing:.2em;text-transform:uppercase;color:var(--mut);}
-.hud-left .num{color:var(--cl);text-shadow:var(--gl);}
-.hud-right .num{color:var(--cr);text-shadow:var(--gr);}
-.hud-right{text-align:right;}
-.hud-center-top{text-align:center;}
-.tilt-lbl{font-size:.7rem;color:var(--mut);letter-spacing:.2em;text-transform:uppercase;}
-.tilt-val{font-family:'Orbitron',sans-serif;font-size:1.1rem;font-weight:700;}
-.tilt-val.left{color:var(--cl);text-shadow:var(--gl);}
-.tilt-val.right{color:var(--cr);text-shadow:var(--gr);}
-.tilt-val.center{color:var(--cc);text-shadow:var(--gc);}
+  .card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 16px;
+    padding: 2.5rem 2.8rem;
+    width: min(420px, 92vw);
+    text-align: center;
+    box-shadow: 0 0 60px #00d4ff18, inset 0 1px 0 #ffffff0a;
+    animation: fadeUp .5s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(24px); }
+    to   { opacity:1; transform:translateY(0);    }
+  }
 
-.hud-bottom{
-  display:flex;justify-content:center;gap:1rem;padding:1.2rem;
-  background:linear-gradient(0deg,#050a0fdd 0%,transparent 100%);
-  pointer-events:all;
-}
-.hud-btn{
-  padding:.65rem 1.6rem;border-radius:8px;border:2px solid;
-  font-family:'Orbitron',sans-serif;font-size:.75rem;font-weight:700;
-  letter-spacing:.1em;cursor:pointer;transition:all .2s;background:#050a0fcc;
-}
-.hud-btn.left{color:var(--cl);border-color:var(--cl);}
-.hud-btn.right{color:var(--cr);border-color:var(--cr);}
-.hud-btn.left:hover{background:#00d4ff22;box-shadow:var(--gl);}
-.hud-btn.right:hover{background:#ff4d6d22;box-shadow:var(--gr);}
-.hud-btn.active{opacity:.35;cursor:default;pointer-events:none;}
+  .logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.2rem; font-weight: 900;
+    letter-spacing: .12em;
+    background: linear-gradient(90deg, var(--c-left), var(--c-center), var(--c-right));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: .3rem;
+  }
+  .tagline {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: .95rem; color: var(--c-muted);
+    letter-spacing: .2em; text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
 
-/* Panel jugadores */
-.players-panel{
-  position:absolute;right:1rem;top:5rem;
-  background:#0d1a24cc;border:1px solid var(--bor);
-  border-radius:10px;padding:.7rem 1rem;min-width:150px;
-  backdrop-filter:blur(6px);z-index:15;
-}
-.players-panel h4{
-  font-family:'Orbitron',sans-serif;font-size:.6rem;
-  letter-spacing:.2em;color:var(--mut);margin-bottom:.5rem;text-transform:uppercase;
-}
-.player-item{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;font-size:.9rem;}
-.pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.pdot.l{background:var(--cl);box-shadow:var(--gl);}
-.pdot.r{background:var(--cr);box-shadow:var(--gr);}
+  label {
+    display: block; text-align: left;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: .85rem; letter-spacing: .15em; text-transform: uppercase;
+    color: var(--c-muted); margin-bottom: .5rem;
+  }
+  input[type="text"] {
+    width: 100%;
+    background: #081520; border: 1px solid var(--c-border);
+    color: var(--c-text);
+    font-family: 'Rajdhani', sans-serif; font-size: 1.1rem;
+    padding: .75rem 1rem; border-radius: 8px;
+    outline: none; transition: border-color .2s, box-shadow .2s;
+    margin-bottom: 1.5rem;
+  }
+  input[type="text"]:focus {
+    border-color: var(--c-left);
+    box-shadow: var(--glow-l);
+  }
 
-/* Waiting */
-#waiting{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:#050a0fcc;border:1px solid var(--bor);border-radius:12px;
-  padding:1rem 2rem;font-family:'Orbitron',sans-serif;font-size:.9rem;
-  color:var(--mut);letter-spacing:.12em;text-align:center;z-index:20;
-}
+  .side-picker {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .side-btn {
+    padding: .9rem; border-radius: 10px; border: 2px solid transparent;
+    font-family: 'Orbitron', sans-serif; font-size: .85rem; font-weight: 700;
+    letter-spacing: .1em; cursor: pointer; transition: all .2s;
+    position: relative; overflow: hidden;
+  }
+  .side-btn::after {
+    content: ''; position: absolute; inset: 0;
+    background: currentColor; opacity: 0; transition: opacity .2s;
+  }
+  .side-btn:hover::after { opacity: .08; }
+
+  .side-btn.left  { color: var(--c-left);  border-color: var(--c-left);  background: #00d4ff10; }
+  .side-btn.right { color: var(--c-right); border-color: var(--c-right); background: #ff4d6d10; }
+  .side-btn.left.selected  { background: #00d4ff22; box-shadow: var(--glow-l); }
+  .side-btn.right.selected { background: #ff4d6d22; box-shadow: var(--glow-r); }
+
+  .enter-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #00d4ff22, #a8ff3e22);
+    border: 1px solid var(--c-center);
+    color: var(--c-center);
+    font-family: 'Orbitron', sans-serif; font-size: .9rem; font-weight: 700;
+    letter-spacing: .15em; padding: .9rem;
+    border-radius: 10px; cursor: pointer;
+    transition: all .2s;
+  }
+  .enter-btn:hover { background: #a8ff3e22; box-shadow: var(--glow-c); }
+  .enter-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  #err-msg {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: .9rem; color: #ff6b6b;
+    min-height: 1.2rem; margin-top: .6rem;
+  }
+
+  /* ── HUD (in-game) ── */
+  #hud {
+    position: fixed; inset: 0; z-index: 10; pointer-events: none;
+    display: none;
+  }
+
+  /* top bar */
+  .hud-top {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .8rem 1.2rem;
+    background: linear-gradient(180deg, #050a0fcc 0%, transparent 100%);
+    pointer-events: none;
+  }
+  .hud-side-count {
+    font-family: 'Orbitron', sans-serif;
+    display: flex; align-items: center; gap: .6rem;
+  }
+  .hud-side-count .num {
+    font-size: 2rem; font-weight: 900; line-height: 1;
+  }
+  .hud-side-count .lbl {
+    font-size: .65rem; letter-spacing: .18em; text-transform: uppercase;
+    font-family: 'Rajdhani', sans-serif; color: var(--c-muted);
+  }
+  .hud-left  .num { color: var(--c-left);  text-shadow: var(--glow-l); }
+  .hud-right .num { color: var(--c-right); text-shadow: var(--glow-r); }
+
+  .hud-center {
+    text-align: center;
+    font-family: 'Rajdhani', sans-serif;
+  }
+  .tilt-label {
+    font-size: .75rem; color: var(--c-muted);
+    letter-spacing: .2em; text-transform: uppercase;
+  }
+  .tilt-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem; font-weight: 700;
+  }
+  .tilt-value.left   { color: var(--c-left);   text-shadow: var(--glow-l); }
+  .tilt-value.right  { color: var(--c-right);  text-shadow: var(--glow-r); }
+  .tilt-value.center { color: var(--c-center); text-shadow: var(--glow-c); }
+
+  /* bottom controls */
+  .hud-bottom {
+    position: absolute; bottom: 1.2rem; left: 50%; transform: translateX(-50%);
+    display: flex; gap: .8rem; pointer-events: all;
+  }
+  .hud-btn {
+    padding: .6rem 1.4rem;
+    border-radius: 8px; border: 2px solid;
+    font-family: 'Orbitron', sans-serif;
+    font-size: .75rem; font-weight: 700; letter-spacing: .1em;
+    cursor: pointer; transition: all .2s;
+    background: #050a0fcc;
+  }
+  .hud-btn.left  { color: var(--c-left);  border-color: var(--c-left); }
+  .hud-btn.right { color: var(--c-right); border-color: var(--c-right); }
+  .hud-btn.left:hover  { background: #00d4ff22; box-shadow: var(--glow-l); }
+  .hud-btn.right:hover { background: #ff4d6d22; box-shadow: var(--glow-r); }
+  .hud-btn.active { opacity: .4; cursor: default; }
+
+  /* players list */
+  .players-panel {
+    position: absolute; right: 1rem; top: 5rem;
+    background: #0d1a24cc;
+    border: 1px solid var(--c-border);
+    border-radius: 10px;
+    padding: .6rem .9rem;
+    min-width: 140px;
+    backdrop-filter: blur(6px);
+    pointer-events: none;
+  }
+  .players-panel h4 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: .6rem; letter-spacing: .2em;
+    color: var(--c-muted); margin-bottom: .5rem;
+    text-transform: uppercase;
+  }
+  .player-item {
+    font-family: 'Rajdhani', sans-serif;
+    font-size: .85rem; display: flex;
+    align-items: center; gap: .4rem;
+    margin-bottom: .2rem;
+  }
+  .player-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-left  { background: var(--c-left);  box-shadow: var(--glow-l); }
+  .dot-right { background: var(--c-right); box-shadow: var(--glow-r); }
+
+  /* waiting badge */
+  #waiting-badge {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    background: #050a0fcc;
+    border: 1px solid var(--c-border);
+    border-radius: 12px; padding: 1rem 2rem;
+    font-family: 'Orbitron', sans-serif;
+    font-size: .9rem; color: var(--c-muted);
+    letter-spacing: .12em; text-align: center;
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+  }
+
+  /* A-Frame canvas */
+  a-scene { display: block; width: 100vw; height: 100vh; }
 </style>
 </head>
 <body>
 
-<!-- ═══ OVERLAY LOGIN ═══ -->
+<!-- ═══════════════════ OVERLAY LOGIN ═══════════════════ -->
 <div id="overlay">
   <div class="card">
     <div class="logo">TUG<span style="opacity:.6">XR</span></div>
     <div class="tagline">Jala la cuerda · WebXR</div>
+
     <label for="alias-input">Tu alias</label>
-    <input id="alias-input" type="text" maxlength="20" placeholder="Ej: NinjaXR" autocomplete="off"/>
+    <input id="alias-input" type="text" maxlength="20"
+           placeholder="Ej: NinjaXR" autocomplete="off" />
+
     <label>Elige tu lado</label>
     <div class="side-picker">
-      <button class="side-btn left" data-side="LEFT">◀ IZQUIERDA</button>
+      <button class="side-btn left"  data-side="LEFT">◀ IZQUIERDA</button>
       <button class="side-btn right" data-side="RIGHT">DERECHA ▶</button>
     </div>
+
     <button class="enter-btn" id="enter-btn" disabled>ENTRAR AL JUEGO</button>
     <div id="err-msg"></div>
   </div>
 </div>
 
-<!-- ═══ GAME ═══ -->
-<div id="game">
-  <!-- Fondo estrellas -->
-  <div id="stars-bg"></div>
-
-  <!-- Canvas SVG balanza -->
-  <svg id="balance-canvas" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
-    <!-- Fondo gradiente -->
-    <defs>
-      <radialGradient id="bgGrad" cx="50%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="#0a1e30"/>
-        <stop offset="100%" stop-color="#050a0f"/>
-      </radialGradient>
-      <filter id="glow-blue">
-        <feGaussianBlur stdDeviation="4" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-      <filter id="glow-red">
-        <feGaussianBlur stdDeviation="4" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-      <filter id="glow-green">
-        <feGaussianBlur stdDeviation="6" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <rect width="1000" height="600" fill="url(#bgGrad)"/>
-
-    <!-- Soporte central (poste) -->
-    <line x1="500" y1="60" x2="500" y2="200" stroke="#1a3a50" stroke-width="8"/>
-    <!-- Base del soporte -->
-    <rect x="470" y="195" width="60" height="12" rx="4" fill="#1a3a50"/>
-
-    <!-- Pivote central (bola verde) -->
-    <circle id="pivot" cx="500" cy="200" r="14" fill="#a8ff3e" filter="url(#glow-green)"/>
-    <circle cx="500" cy="200" r="7" fill="#050a0f"/>
-
-    <!-- BARRA DE BALANZA (rota desde el centro) -->
-    <g id="bar-group" transform="rotate(0, 500, 200)">
-      <!-- Barra -->
-      <rect id="balance-bar" x="140" y="196" width="720" height="8" rx="4"
-            fill="#a0c0d0" opacity="0.9"/>
-      <!-- Cuerda izquierda -->
-      <line id="rope-left" x1="200" y1="204" x2="200" y2="310" stroke="#e0c080" stroke-width="3"/>
-      <!-- Cuerda derecha -->
-      <line id="rope-right" x1="800" y1="204" x2="800" y2="310" stroke="#e0c080" stroke-width="3"/>
-      <!-- Peso izquierdo -->
-      <g id="weight-left-grp">
-        <rect x="162" y="310" width="76" height="60" rx="8"
-              fill="#00d4ff" opacity="0.85" filter="url(#glow-blue)"/>
-        <rect x="162" y="310" width="76" height="60" rx="8"
-              fill="none" stroke="#00d4ff" stroke-width="2"/>
-        <text x="200" y="347" text-anchor="middle" fill="#050a0f"
-              font-family="Orbitron,sans-serif" font-size="11" font-weight="700">IZQ</text>
-        <!-- Contador dentro del peso -->
-        <text id="weight-left-num" x="200" y="362" text-anchor="middle"
-              fill="#050a0f" font-family="Orbitron,sans-serif" font-size="13" font-weight="900">0</text>
-      </g>
-      <!-- Peso derecho -->
-      <g id="weight-right-grp">
-        <rect x="762" y="310" width="76" height="60" rx="8"
-              fill="#ff4d6d" opacity="0.85" filter="url(#glow-red)"/>
-        <rect x="762" y="310" width="76" height="60" rx="8"
-              fill="none" stroke="#ff4d6d" stroke-width="2"/>
-        <text x="800" y="347" text-anchor="middle" fill="#050a0f"
-              font-family="Orbitron,sans-serif" font-size="11" font-weight="700">DER</text>
-        <text id="weight-right-num" x="800" y="362" text-anchor="middle"
-              fill="#050a0f" font-family="Orbitron,sans-serif" font-size="13" font-weight="900">0</text>
-      </g>
-    </g>
-
-    <!-- Avatares izquierda (se dibujan por JS) -->
-    <g id="avatars-left"></g>
-    <!-- Avatares derecha -->
-    <g id="avatars-right"></g>
-
-    <!-- Suelo -->
-    <rect x="0" y="530" width="1000" height="70" fill="#0a1420"/>
-    <line x1="0" y1="530" x2="1000" y2="530" stroke="#1a3a50" stroke-width="2"/>
-
-    <!-- Zona izquierda label -->
-    <text x="200" y="520" text-anchor="middle" fill="#00d4ff" opacity="0.5"
-          font-family="Orbitron,sans-serif" font-size="13" letter-spacing="3">IZQUIERDA</text>
-    <!-- Zona derecha label -->
-    <text x="800" y="520" text-anchor="middle" fill="#ff4d6d" opacity="0.5"
-          font-family="Orbitron,sans-serif" font-size="13" letter-spacing="3">DERECHA</text>
-  </svg>
-
-  <!-- HUD -->
-  <div id="hud">
-    <div class="hud-top">
-      <div class="hud-side hud-left">
+<!-- ═══════════════════ HUD ═══════════════════ -->
+<div id="hud">
+  <!-- top bar -->
+  <div class="hud-top">
+    <div class="hud-side-count hud-left">
+      <div>
         <div class="num" id="hud-left-count">0</div>
         <div class="lbl">izquierda</div>
       </div>
-      <div class="hud-center-top">
-        <div class="tilt-lbl">inclinación</div>
-        <div class="tilt-val center" id="hud-tilt">CENTRO</div>
-      </div>
-      <div class="hud-side hud-right">
+    </div>
+    <div class="hud-center">
+      <div class="tilt-label">inclinación</div>
+      <div class="tilt-value center" id="hud-tilt">CENTRO</div>
+    </div>
+    <div class="hud-side-count hud-right" style="flex-direction:row-reverse">
+      <div style="text-align:right">
         <div class="num" id="hud-right-count">0</div>
         <div class="lbl">derecha</div>
       </div>
     </div>
-
-    <div class="hud-bottom">
-      <button class="hud-btn left" id="btn-go-left" onclick="pickSide('LEFT')">◀ IZQUIERDA</button>
-      <button class="hud-btn right" id="btn-go-right" onclick="pickSide('RIGHT')">DERECHA ▶</button>
-    </div>
   </div>
 
-  <!-- Panel jugadores -->
+  <!-- bottom switch buttons -->
+  <div class="hud-bottom">
+    <button class="hud-btn left"  id="btn-go-left"  onclick="pickSide('LEFT')">◀ IZQUIERDA</button>
+    <button class="hud-btn right" id="btn-go-right" onclick="pickSide('RIGHT')">DERECHA ▶</button>
+  </div>
+
+  <!-- players list -->
   <div class="players-panel">
     <h4>Jugadores</h4>
     <div id="players-list"></div>
   </div>
 
-  <!-- Waiting -->
-  <div id="waiting">Esperando otro jugador…</div>
+  <!-- waiting -->
+  <div id="waiting-badge">Esperando otro jugador…</div>
 </div>
 
+<!-- ═══════════════════ A-FRAME SCENE ═══════════════════ -->
+<a-scene id="scene" embedded
+         background="color: #050a0f"
+         fog="type: exponential; color: #050a0f; density: 0.035"
+         style="display:none">
+
+  <!-- Assets -->
+  <a-assets>
+    <a-mixin id="avatar-body"
+      geometry="primitive:sphere; radius:0.18"
+      material="shader:flat; color:#ffffff"></a-mixin>
+  </a-assets>
+
+  <!-- Lighting -->
+  <a-light type="ambient" color="#0a2030" intensity="1.2"></a-light>
+  <a-light type="directional" position="2 4 3" color="#ffffff" intensity="0.8"></a-light>
+  <a-light type="point" position="-3 3 0" color="#00d4ff" intensity="0.7" distance="8"></a-light>
+  <a-light type="point" position=" 3 3 0" color="#ff4d6d" intensity="0.7" distance="8"></a-light>
+
+  <!-- Floor grid -->
+  <a-entity id="floor-grid"
+    geometry="primitive:plane; width:30; height:30"
+    rotation="-90 0 0"
+    position="0 -2 0"
+    material="color:#0a1a28; wireframe:true; opacity:0.35"></a-entity>
+
+  <!-- Ceiling mount (hook point) -->
+  <a-entity
+    geometry="primitive:cylinder; radius:0.06; height:4"
+    position="0 4 0"
+    material="color:#1a3a50; metalness:1; roughness:0.2"></a-entity>
+
+  <!-- ROPE / BAR  — this entity is animated via JS -->
+  <a-entity id="rope-container" position="0 2.5 0">
+    <!-- Horizontal bar -->
+    <a-entity id="rope-bar"
+      geometry="primitive:cylinder; radius:0.04; height:5"
+      rotation="0 0 90"
+      material="color:#a0c0d0; metalness:0.8; roughness:0.3"
+      animation__tilt="property:rotation; to:0 0 0; dur:600; easing:easeOutElastic;
+                       loop:false; autoplay:false"></a-entity>
+    <!-- Left weight -->
+    <a-entity id="weight-left" position="-2.4 0 0">
+      <a-entity
+        geometry="primitive:box; width:0.35; height:0.35; depth:0.35"
+        material="color:#00d4ff; metalness:0.6; roughness:0.4; emissive:#00d4ff; emissiveIntensity:0.3"></a-entity>
+    </a-entity>
+    <!-- Right weight -->
+    <a-entity id="weight-right" position="2.4 0 0">
+      <a-entity
+        geometry="primitive:box; width:0.35; height:0.35; depth:0.35"
+        material="color:#ff4d6d; metalness:0.6; roughness:0.4; emissive:#ff4d6d; emissiveIntensity:0.3"></a-entity>
+    </a-entity>
+    <!-- Center pivot ball -->
+    <a-entity
+      geometry="primitive:sphere; radius:0.12"
+      position="0 0.22 0"
+      material="color:#a8ff3e; emissive:#a8ff3e; emissiveIntensity:0.5; metalness:0.8"></a-entity>
+    <!-- Left rope segment -->
+    <a-entity id="rope-seg-left"
+      geometry="primitive:cylinder; radius:0.015; height:0.5"
+      position="-2.4 0.25 0"
+      material="color:#e0c080; roughness:0.9"></a-entity>
+    <!-- Right rope segment -->
+    <a-entity id="rope-seg-right"
+      geometry="primitive:cylinder; radius:0.015; height:0.5"
+      position="2.4 0.25 0"
+      material="color:#e0c080; roughness:0.9"></a-entity>
+  </a-entity>
+
+  <!-- Avatars container -->
+  <a-entity id="avatars-root"></a-entity>
+
+  <!-- Camera rig -->
+  <a-entity id="rig" position="0 1.6 6">
+    <a-camera look-controls wasd-controls>
+      <a-cursor color="#ffffff" opacity="0.5"></a-cursor>
+    </a-camera>
+  </a-entity>
+
+  <!-- Ground platform -->
+  <a-entity
+    geometry="primitive:box; width:12; height:0.2; depth:3"
+    position="0 -2 0"
+    material="color:#0d1a24; metalness:0.4; roughness:0.7"></a-entity>
+
+  <!-- Left zone marker -->
+  <a-entity
+    geometry="primitive:plane; width:5; height:3"
+    rotation="-90 0 0"
+    position="-3.5 -1.89 0"
+    material="color:#00d4ff; opacity:0.07"></a-entity>
+  <a-text value="IZQUIERDA" position="-3.5 -1 -1"
+          align="center" color="#00d4ff" width="4" opacity="0.5"></a-text>
+
+  <!-- Right zone marker -->
+  <a-entity
+    geometry="primitive:plane; width:5; height:3"
+    rotation="-90 0 0"
+    position="3.5 -1.89 0"
+    material="color:#ff4d6d; opacity:0.07"></a-entity>
+  <a-text value="DERECHA" position="3.5 -1 -1"
+          align="center" color="#ff4d6d" width="4" opacity="0.5"></a-text>
+
+  <!-- Stars background -->
+  <a-entity id="stars">
+    <!-- generated procedurally by JS -->
+  </a-entity>
+
+</a-scene>
+
+<!-- ═══════════════════ GAME LOGIC ═══════════════════ -->
 <script>
-// ── SUPABASE CONFIG ──────────────────────────────────────────
+// ── CONFIG SUPABASE ─────────────────────────────────────────
+// REEMPLAZA con tus credenciales reales de Supabase
 const SUPABASE_URL = 'https://uedxajxmliwxdbbhphse.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZHhhanhtbGl3eGRiYmhwaHNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzAzNTgsImV4cCI6MjA5NDgwNjM1OH0.nZP8wR-52xoR9nwaXAmc00h1zxd51vWnEZJFmPgu464';
+
+/*
+   SQL para crear la tabla (ejecutar en Supabase SQL Editor):
+
+   create table if not exists tug_players (
+     id         text primary key,
+     alias      text not null,
+     side       text not null check (side in ('LEFT','RIGHT')),
+     created_at timestamptz default now()
+   );
+
+   alter table tug_players enable row level security;
+   create policy "anon full" on tug_players for all using (true) with check (true);
+*/
+
 const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── LÓGICA PURA ──────────────────────────────────────────────
+// ── LÓGICA PURA (mismas funciones de game-logic.js) ─────────
 function validateAlias(alias) {
   if (typeof alias !== 'string') return { valid: false, error: 'Alias inválido.' };
   const t = alias.trim();
   if (!t.length)     return { valid: false, error: 'El alias no puede estar vacío.' };
   if (t.length < 2)  return { valid: false, error: 'Mínimo 2 caracteres.' };
   if (t.length > 20) return { valid: false, error: 'Máximo 20 caracteres.' };
-  if (!/^[a-zA-Z0-9_\- ]+$/.test(t)) return { valid: false, error: 'Solo letras, números, guiones y espacios.' };
+  if (!/^[a-zA-Z0-9_\- ]+$/.test(t))
+    return { valid: false, error: 'Solo letras, números, guiones y espacios.' };
   return { valid: true };
 }
+
 function countSides(players) {
-  let left=0,right=0;
-  for(const p of players){ if(p.side==='LEFT')left++; else if(p.side==='RIGHT')right++; }
-  return {left,right};
-}
-function calcRopeOffset(left,right){ return (left<0||right<0)?0:(left-right)*25; }
-function getTiltDirection(offset){ return offset<0?'LEFT':offset>0?'RIGHT':'CENTER'; }
-function getGameState(players){
-  const {left,right}=countSides(players);
-  const offset=calcRopeOffset(left,right);
-  return {left,right,offset,tilt:getTiltDirection(offset),canStart:players.length>=2};
-}
-
-// ── ESTADO ───────────────────────────────────────────────────
-let myId=crypto.randomUUID(), myAlias='', mySide=null, players=[];
-const $=id=>document.getElementById(id);
-
-// ── STARS ────────────────────────────────────────────────────
-function initStars(){
-  const bg=$('stars-bg');
-  for(let i=0;i<120;i++){
-    const s=document.createElement('div');
-    s.className='star';
-    const sz=Math.random()*2.5+.5;
-    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*60}%;--d:${2+Math.random()*4}s;opacity:${Math.random()*.8+.2}`;
-    bg.appendChild(s);
+  let left = 0, right = 0;
+  for (const p of players) {
+    if (p.side === 'LEFT') left++;
+    else if (p.side === 'RIGHT') right++;
   }
+  return { left, right };
 }
 
-// ── LOGIN UI ─────────────────────────────────────────────────
-document.querySelectorAll('.side-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('selected'));
+function calcRopeOffset(left, right) {
+  if (left < 0 || right < 0) return 0;
+  return (left - right) * 25;  // px  (25 px por unidad de diferencia)
+}
+
+function getTiltDirection(offset) {
+  if (offset < 0) return 'LEFT';
+  if (offset > 0) return 'RIGHT';
+  return 'CENTER';
+}
+
+function getGameState(players) {
+  const { left, right } = countSides(players);
+  const offset = calcRopeOffset(left, right);
+  const tilt   = getTiltDirection(offset);
+  return { left, right, offset, tilt, canStart: players.length >= 2 };
+}
+
+// ── ESTADO LOCAL ────────────────────────────────────────────
+let myId    = crypto.randomUUID();
+let myAlias = '';
+let mySide  = null;
+let players = [];   // [{ id, alias, side }]
+
+// ── UI HELPERS ──────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const errEl = $('err-msg');
+
+function showErr(msg) { errEl.textContent = msg; }
+function clearErr()   { errEl.textContent = ''; }
+
+// Side picker
+document.querySelectorAll('.side-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.side-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
-    mySide=btn.dataset.side;
-    updateBtn(); $('err-msg').textContent='';
+    mySide = btn.dataset.side;
+    updateEnterBtn();
+    clearErr();
   });
 });
-$('alias-input').addEventListener('input',()=>{ $('err-msg').textContent=''; updateBtn(); });
-function updateBtn(){
-  const v=validateAlias($('alias-input').value);
-  $('enter-btn').disabled=!(v.valid&&mySide);
+
+$('alias-input').addEventListener('input', () => {
+  clearErr();
+  updateEnterBtn();
+});
+
+function updateEnterBtn() {
+  const v = validateAlias($('alias-input').value);
+  $('enter-btn').disabled = !(v.valid && mySide);
 }
-$('enter-btn').addEventListener('click',async()=>{
-  const aliasRaw=$('alias-input').value.trim();
-  const v=validateAlias(aliasRaw);
-  if(!v.valid){ $('err-msg').textContent=v.error; return; }
-  if(!mySide){ $('err-msg').textContent='Elige un lado.'; return; }
-  myAlias=aliasRaw;
-  $('enter-btn').disabled=true;
-  $('enter-btn').textContent='CONECTANDO…';
-  try{
-    const {error}=await sbClient.from('tug_players').upsert({id:myId,alias:myAlias,side:mySide});
-    if(error)throw error;
+
+// ── ENTER GAME ───────────────────────────────────────────────
+$('enter-btn').addEventListener('click', async () => {
+  const aliasRaw = $('alias-input').value.trim();
+  const v = validateAlias(aliasRaw);
+  if (!v.valid) { showErr(v.error); return; }
+  if (!mySide)  { showErr('Elige un lado.'); return; }
+
+  myAlias = aliasRaw;
+  $('enter-btn').disabled = true;
+  $('enter-btn').textContent = 'CONECTANDO…';
+
+  try {
+    // Upsert jugador en Supabase
+    const { error } = await sbClient.from('tug_players').upsert({
+      id: myId, alias: myAlias, side: mySide
+    });
+    if (error) throw error;
+
     startGame();
-  }catch(err){
+  } catch (err) {
     console.error(err);
-    $('err-msg').textContent='Error de conexión.';
-    $('enter-btn').disabled=false;
-    $('enter-btn').textContent='ENTRAR AL JUEGO';
+    showErr('Error de conexión. Revisa tus credenciales de Supabase.');
+    $('enter-btn').disabled = false;
+    $('enter-btn').textContent = 'ENTRAR AL JUEGO';
   }
 });
 
-// ── HEARTBEAT ───────────────────────────────────────────
-let heartbeatInterval = null;
+// ── START GAME ───────────────────────────────────────────────
+async function startGame() {
+  $('overlay').style.display = 'none';
+  $('scene').style.display   = 'block';
+  $('hud').style.display     = 'block';
 
-async function sendHeartbeat() {
-  await sbClient.from("tug_players").update({ last_seen: new Date().toISOString() }).eq("id", myId);
-}
-
-async function cleanDeadPlayers() {
-  const cutoff = new Date(Date.now() - 30000).toISOString();
-  await sbClient.from("tug_players").delete().lt("last_seen", cutoff);
-  await fetchAllPlayers();
-  renderScene();
-}
-
-// ── START ────────────────────────────────────────────────────
-async function startGame(){
-  $('overlay').style.display='none';
-  $('game').style.display='block';
   initStars();
+
+  // Carga inicial
   await fetchAllPlayers();
   renderScene();
+
+  // Suscripción realtime
   sbClient.channel('tug_room')
-    .on('postgres_changes',{event:'*',schema:'public',table:'tug_players'},payload=>{
-      handleRT(payload);
-    }).subscribe();
+    .on('postgres_changes', {
+      event:  '*',
+      schema: 'public',
+      table:  'tug_players'
+    }, payload => {
+      handleRealtimeEvent(payload);
+    })
+    .subscribe();
+
+  // Limpieza al cerrar pestaña
   window.addEventListener('beforeunload', removeMyself);
-  // Heartbeat: avisar cada 15s que sigo activo + limpiar fantasmas
-  sendHeartbeat();
-  heartbeatInterval = setInterval(async () => {
-    sendHeartbeat();
-    await cleanDeadPlayers();
-  }, 15000);
 }
 
-function handleRT({eventType,new:row,old}){
-  if(eventType==='INSERT'){ if(!players.find(p=>p.id===row.id))players.push(row); }
-  else if(eventType==='UPDATE'){ const i=players.findIndex(p=>p.id===row.id); if(i>=0)players[i]=row; else players.push(row); }
-  else if(eventType==='DELETE'){ players=players.filter(p=>p.id!==old.id); }
+// ── REALTIME HANDLER ────────────────────────────────────────
+function handleRealtimeEvent({ eventType, new: row, old }) {
+  if (eventType === 'INSERT') {
+    if (!players.find(p => p.id === row.id)) players.push(row);
+  } else if (eventType === 'UPDATE') {
+    const idx = players.findIndex(p => p.id === row.id);
+    if (idx >= 0) players[idx] = row; else players.push(row);
+  } else if (eventType === 'DELETE') {
+    players = players.filter(p => p.id !== old.id);
+  }
   renderScene();
 }
-async function fetchAllPlayers(){
-  const {data,error}=await sbClient.from('tug_players').select('*');
-  if(!error&&data)players=data;
+
+// ── FETCH ALL PLAYERS ────────────────────────────────────────
+async function fetchAllPlayers() {
+  const { data, error } = await sbClient.from('tug_players').select('*');
+  if (!error && data) players = data;
 }
-async function pickSide(side){
-  if(side===mySide)return;
-  mySide=side;
-  await sbClient.from('tug_players').update({side}).eq('id',myId);
+
+// ── SWITCH SIDE ──────────────────────────────────────────────
+async function pickSide(side) {
+  if (side === mySide) return;
+  mySide = side;
+  const { error } = await sbClient.from('tug_players')
+    .update({ side })
+    .eq('id', myId);
+  if (error) console.error(error);
   renderScene();
 }
-async function removeMyself(){ await sbClient.from('tug_players').delete().eq('id',myId); }
 
-// ── COLORES AVATAR ───────────────────────────────────────────
-const COLORS=['#00d4ff','#ff4d6d','#a8ff3e','#ffcc00','#c084fc','#fb923c','#34d399','#f472b6'];
+// ── REMOVE ON LEAVE ──────────────────────────────────────────
+async function removeMyself() {
+  await sbClient.from('tug_players').delete().eq('id', myId);
+}
 
-// ── RENDER ───────────────────────────────────────────────────
-function renderScene(){
-  const state=getGameState(players);
+// ── RENDER SCENE (HUD + A-Frame) ────────────────────────────
+function renderScene() {
+  const state = getGameState(players);
 
-  // HUD texto
-  $('hud-left-count').textContent=state.left;
-  $('hud-right-count').textContent=state.right;
-  const tiltEl=$('hud-tilt');
-  tiltEl.textContent={LEFT:'IZQUIERDA',CENTER:'CENTRO',RIGHT:'DERECHA'}[state.tilt];
-  tiltEl.className='tilt-val '+state.tilt.toLowerCase();
+  // ── HUD text ──
+  $('hud-left-count').textContent  = state.left;
+  $('hud-right-count').textContent = state.right;
 
-  // Botones
-  $('btn-go-left').classList.toggle('active',mySide==='LEFT');
-  $('btn-go-right').classList.toggle('active',mySide==='RIGHT');
+  const tiltEl = $('hud-tilt');
+  const labels = { LEFT: 'IZQUIERDA', CENTER: 'CENTRO', RIGHT: 'DERECHA' };
+  tiltEl.textContent = labels[state.tilt];
+  tiltEl.className   = 'tilt-value ' + state.tilt.toLowerCase();
 
-  // Waiting
-  $('waiting').style.display=state.canStart?'none':'block';
+  // ── Switch buttons ──
+  $('btn-go-left').classList.toggle('active',  mySide === 'LEFT');
+  $('btn-go-right').classList.toggle('active', mySide === 'RIGHT');
 
-  // Lista jugadores
-  const list=$('players-list'); list.innerHTML='';
-  players.forEach(p=>{
-    const item=document.createElement('div'); item.className='player-item';
-    const dot=document.createElement('span'); dot.className='pdot '+(p.side==='LEFT'?'l':'r');
-    const name=document.createElement('span');
-    name.textContent=p.alias+(p.id===myId?' ✦':'');
-    name.style.color=p.id===myId?'#fff':'var(--mut)';
-    item.append(dot,name); list.appendChild(item);
+  // ── Players list ──
+  const list = $('players-list');
+  list.innerHTML = '';
+  players.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'player-item';
+    const dot  = document.createElement('span');
+    dot.className = 'player-dot ' + (p.side === 'LEFT' ? 'dot-left' : 'dot-right');
+    const name = document.createElement('span');
+    name.textContent = p.alias + (p.id === myId ? ' ✦' : '');
+    name.style.color = p.id === myId ? '#fff' : 'var(--c-muted)';
+    item.append(dot, name);
+    list.appendChild(item);
   });
 
-  // ── BALANZA SVG ──
-  const maxOff=200, maxDeg=25;
-  const clamp=Math.max(-maxOff,Math.min(maxOff,state.offset));
-  const deg=(clamp/maxOff)*maxDeg;
-  $('bar-group').setAttribute('transform',`rotate(${deg},500,200)`);
+  // ── Waiting badge ──
+  $('waiting-badge').style.display = state.canStart ? 'none' : 'block';
 
-  // Números en los pesos
-  $('weight-left-num').textContent=state.left;
-  $('weight-right-num').textContent=state.right;
+  // ── Rope tilt (A-Frame) ──
+  // Convertimos offset px → grados (máx ±150px → ±20°)
+  const maxOffset  = 200;
+  const maxDeg     = 22;
+  const clampedOff = Math.max(-maxOffset, Math.min(maxOffset, state.offset));
+  const deg        = (clampedOff / maxOffset) * maxDeg;
 
-  // ── AVATARES SVG ──
-  renderAvatars(state);
+  const bar = $('rope-bar');
+  if (bar) {
+    bar.setAttribute('rotation', `0 0 ${90 + deg}`);
+  }
+  // Mover pesos verticalmente (el lado pesado baja)
+  const wL = $('weight-left');
+  const wR = $('weight-right');
+  if (wL && wR) {
+    const drop = (clampedOff / maxOffset) * 0.6;  // máx 0.6 unidades
+    wL.setAttribute('position', `-2.4 ${-drop} 0`);
+    wR.setAttribute('position', ` 2.4 ${drop} 0`);
+  }
+
+  // ── Avatars ──
+  renderAvatars();
 }
 
-function renderAvatars(state){
-  const leftP=players.filter(p=>p.side==='LEFT');
-  const rightP=players.filter(p=>p.side==='RIGHT');
+// ── AVATARS ──────────────────────────────────────────────────
+const AVATAR_COLORS = [
+  '#00d4ff','#ff4d6d','#a8ff3e','#ffcc00',
+  '#c084fc','#fb923c','#34d399','#f472b6'
+];
 
-  const gL=$('avatars-left'); gL.innerHTML='';
-  const gR=$('avatars-right'); gR.innerHTML='';
+function renderAvatars() {
+  const root = $('avatars-root');
+  if (!root) return;
 
-  // Obtenemos la rotación actual para posicionar avatares
-  const maxOff=200,maxDeg=25;
-  const clamp=Math.max(-maxOff,Math.min(maxOff,state.offset));
-  const deg=(clamp/maxOff)*maxDeg;
-  const rad=deg*Math.PI/180;
+  // Remove old avatars
+  while (root.firstChild) root.removeChild(root.firstChild);
 
-  // Posición base de los pesos en el sistema rotado
-  const pivotX=500,pivotY=200;
-  const armL=300; // distancia del pivote al peso izq
-  const armR=300; // distancia del pivote al peso der
+  const leftPlayers  = players.filter(p => p.side === 'LEFT');
+  const rightPlayers = players.filter(p => p.side === 'RIGHT');
 
-  // Centro del peso izquierdo rotado
-  const lx=pivotX+(-armL)*Math.cos(rad)-0*Math.sin(rad);
-  const ly=pivotY+(-armL)*Math.sin(rad)+0*Math.cos(rad)+110;
-  // Centro del peso derecho rotado
-  const rx=pivotX+(armR)*Math.cos(rad)-0*Math.sin(rad);
-  const ry=pivotY+(armR)*Math.sin(rad)+0*Math.cos(rad)+110;
+  const place = (p, i, arr, baseX) => {
+    const cols = Math.ceil(Math.sqrt(arr.length));
+    const col  = i % cols;
+    const row  = Math.floor(i / cols);
+    const x    = baseX + (p.side === 'LEFT' ? -col * 0.5 : col * 0.5);
+    const z    = -row * 0.5;
+    const y    = -1.6;
 
-  const placeAvatars=(group,pList,baseX,baseY)=>{
-    pList.forEach((p,i)=>{
-      const col=i%3, row=Math.floor(i/3);
-      const dx=(col-1)*36;
-      const dy=row*40;
-      const cx=baseX+dx, cy=baseY+dy+60;
-      const color=COLORS[(p.alias.charCodeAt(0)||0)%COLORS.length];
-      const ns='http://www.w3.org/2000/svg';
+    const colorIdx = (p.alias.charCodeAt(0) || 0) % AVATAR_COLORS.length;
+    const color    = AVATAR_COLORS[colorIdx];
 
-      // Círculo avatar
-      const circle=document.createElementNS(ns,'circle');
-      circle.setAttribute('cx',cx); circle.setAttribute('cy',cy);
-      circle.setAttribute('r','16');
-      circle.setAttribute('fill',color);
-      circle.setAttribute('opacity','0.9');
-      group.appendChild(circle);
+    const entity = document.createElement('a-entity');
+    entity.setAttribute('position', `${x} ${y} ${z}`);
 
-      // Inicial del alias
-      const txt=document.createElementNS(ns,'text');
-      txt.setAttribute('x',cx); txt.setAttribute('y',cy+5);
-      txt.setAttribute('text-anchor','middle');
-      txt.setAttribute('fill','#050a0f');
-      txt.setAttribute('font-family','Orbitron,sans-serif');
-      txt.setAttribute('font-size','12');
-      txt.setAttribute('font-weight','700');
-      txt.textContent=p.alias.charAt(0).toUpperCase();
-      group.appendChild(txt);
+    // Body sphere
+    const body = document.createElement('a-sphere');
+    body.setAttribute('radius', '0.18');
+    body.setAttribute('material', `color:${color}; emissive:${color}; emissiveIntensity:0.25`);
+    entity.appendChild(body);
 
-      // Nombre debajo
-      const name=document.createElementNS(ns,'text');
-      name.setAttribute('x',cx); name.setAttribute('y',cy+32);
-      name.setAttribute('text-anchor','middle');
-      name.setAttribute('fill',color);
-      name.setAttribute('font-family','Rajdhani,sans-serif');
-      name.setAttribute('font-size','10');
-      name.textContent=p.alias.length>8?p.alias.slice(0,7)+'…':p.alias;
-      group.appendChild(name);
-    });
+    // Name tag
+    const tag = document.createElement('a-text');
+    tag.setAttribute('value', p.alias);
+    tag.setAttribute('align', 'center');
+    tag.setAttribute('color', '#ffffff');
+    tag.setAttribute('width', '1.8');
+    tag.setAttribute('position', '0 0.35 0');
+    entity.appendChild(tag);
+
+    // Glow ring
+    const ring = document.createElement('a-torus');
+    ring.setAttribute('radius', '0.22');
+    ring.setAttribute('radius-tubular', '0.015');
+    ring.setAttribute('rotation', '90 0 0');
+    ring.setAttribute('material', `color:${color}; emissive:${color}; emissiveIntensity:0.6; opacity:0.7`);
+    entity.appendChild(ring);
+
+    root.appendChild(entity);
   };
 
-  placeAvatars(gL,leftP,lx,ly);
-  placeAvatars(gR,rightP,rx,ry);
+  leftPlayers.forEach((p, i) => place(p, i, leftPlayers, -2));
+  rightPlayers.forEach((p, i) => place(p, i, rightPlayers, 2));
+}
+
+// ── PROCEDURAL STARS ─────────────────────────────────────────
+function initStars() {
+  const container = $('stars');
+  if (!container) return;
+  for (let i = 0; i < 200; i++) {
+    const s = document.createElement('a-sphere');
+    const r = Math.random() * 0.03 + 0.01;
+    const x = (Math.random() - 0.5) * 60;
+    const y = (Math.random() * 20) + 2;
+    const z = (Math.random() - 0.5) * 60;
+    s.setAttribute('radius', r);
+    s.setAttribute('position', `${x} ${y} ${z}`);
+    s.setAttribute('material', 'color:#ffffff; emissive:#ffffff; emissiveIntensity:1; shader:flat');
+    container.appendChild(s);
+  }
 }
 </script>
 </body>
