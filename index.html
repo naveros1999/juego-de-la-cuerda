@@ -284,7 +284,7 @@ input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
 // ── SUPABASE CONFIG ──────────────────────────────────────────
 const SUPABASE_URL = 'https://uedxajxmliwxdbbhphse.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZHhhanhtbGl3eGRiYmhwaHNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzAzNTgsImV4cCI6MjA5NDgwNjM1OH0.nZP8wR-52xoR9nwaXAmc00h1zxd51vWnEZJFmPgu464';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── LÓGICA PURA ──────────────────────────────────────────────
 function validateAlias(alias) {
@@ -348,7 +348,7 @@ $('enter-btn').addEventListener('click',async()=>{
   $('enter-btn').disabled=true;
   $('enter-btn').textContent='CONECTANDO…';
   try{
-    const {error}=await supabase.from('tug_players').upsert({id:myId,alias:myAlias,side:mySide});
+    const {error}=await sbClient.from('tug_players').upsert({id:myId,alias:myAlias,side:mySide});
     if(error)throw error;
     startGame();
   }catch(err){
@@ -363,12 +363,12 @@ $('enter-btn').addEventListener('click',async()=>{
 let heartbeatInterval = null;
 
 async function sendHeartbeat() {
-  await supabase.from("tug_players").update({ last_seen: new Date().toISOString() }).eq("id", myId);
+  await sbClient.from("tug_players").update({ last_seen: new Date().toISOString() }).eq("id", myId);
 }
 
 async function cleanDeadPlayers() {
   const cutoff = new Date(Date.now() - 30000).toISOString();
-  await supabase.from("tug_players").delete().lt("last_seen", cutoff);
+  await sbClient.from("tug_players").delete().lt("last_seen", cutoff);
   await fetchAllPlayers();
   renderScene();
 }
@@ -380,7 +380,7 @@ async function startGame(){
   initStars();
   await fetchAllPlayers();
   renderScene();
-  supabase.channel('tug_room')
+  sbClient.channel('tug_room')
     .on('postgres_changes',{event:'*',schema:'public',table:'tug_players'},payload=>{
       handleRT(payload);
     }).subscribe();
@@ -400,16 +400,16 @@ function handleRT({eventType,new:row,old}){
   renderScene();
 }
 async function fetchAllPlayers(){
-  const {data,error}=await supabase.from('tug_players').select('*');
+  const {data,error}=await sbClient.from('tug_players').select('*');
   if(!error&&data)players=data;
 }
 async function pickSide(side){
   if(side===mySide)return;
   mySide=side;
-  await supabase.from('tug_players').update({side}).eq('id',myId);
+  await sbClient.from('tug_players').update({side}).eq('id',myId);
   renderScene();
 }
-async function removeMyself(){ await supabase.from('tug_players').delete().eq('id',myId); }
+async function removeMyself(){ await sbClient.from('tug_players').delete().eq('id',myId); }
 
 // ── COLORES AVATAR ───────────────────────────────────────────
 const COLORS=['#00d4ff','#ff4d6d','#a8ff3e','#ffcc00','#c084fc','#fb923c','#34d399','#f472b6'];
