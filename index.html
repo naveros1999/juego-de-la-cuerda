@@ -4,7 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>TugXR — Jala la Cuerda</title>
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js"}}</script>
+<script type="module">
+import * as THREE from 'three';
+window.THREE = THREE;
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;500;700&display=swap');
@@ -62,19 +66,82 @@ input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
 .enter-btn:disabled{opacity:.35;cursor:not-allowed;}
 #err-msg{font-size:.9rem;color:#ff6b6b;min-height:1.2rem;margin-top:.6rem;}
 
+/* ── WAITING ROOM ── */
+#waiting-room{
+  position:fixed;inset:0;z-index:150;display:none;
+  align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 50% 0%,#0a2030,#050a0f 70%);
+  flex-direction:column;gap:2rem;
+}
+#waiting-room.visible{display:flex;}
+.wr-card{
+  background:var(--sur);border:1px solid var(--bor);border-radius:16px;
+  padding:2.5rem 3rem;width:min(480px,92vw);text-align:center;
+  box-shadow:0 0 60px #00d4ff18;
+}
+.wr-title{
+  font-family:'Orbitron',sans-serif;font-size:1.4rem;font-weight:700;
+  color:var(--cl);letter-spacing:.12em;margin-bottom:1rem;
+  text-shadow:var(--gl);
+}
+.wr-subtitle{font-size:1rem;color:var(--mut);letter-spacing:.1em;margin-bottom:2rem;}
+.wr-pulse{
+  display:flex;align-items:center;justify-content:center;gap:.5rem;margin-bottom:1.5rem;
+}
+.wr-dot{
+  width:12px;height:12px;border-radius:50%;background:var(--cl);
+  animation:wr-bounce 1.4s infinite ease-in-out;
+}
+.wr-dot:nth-child(2){animation-delay:.2s;background:var(--cc);}
+.wr-dot:nth-child(3){animation-delay:.4s;background:var(--cr);}
+@keyframes wr-bounce{0%,80%,100%{transform:scale(0.6);opacity:.5}40%{transform:scale(1.2);opacity:1}}
+.wr-player-card{
+  display:flex;align-items:center;gap:1rem;
+  background:#081520;border:1px solid var(--bor);border-radius:10px;
+  padding:.8rem 1.2rem;margin-bottom:.6rem;text-align:left;
+}
+.wr-avatar{
+  width:42px;height:42px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;
+  color:#050a0f;flex-shrink:0;
+}
+.wr-name{font-family:'Orbitron',sans-serif;font-size:.85rem;font-weight:700;color:var(--txt);}
+.wr-side{font-size:.75rem;color:var(--mut);letter-spacing:.15em;text-transform:uppercase;}
+.wr-side.l{color:var(--cl);}
+.wr-side.r{color:var(--cr);}
+.wr-status{font-size:.8rem;color:var(--cc);letter-spacing:.1em;margin-top:1.2rem;}
+.wr-orbit{
+  width:80px;height:80px;border-radius:50%;
+  border:2px solid transparent;
+  border-top-color:var(--cl);border-right-color:var(--cc);
+  animation:orbit 2s linear infinite;margin:0 auto 1rem;
+}
+@keyframes orbit{to{transform:rotate(360deg)}}
+
+/* ── MUSIC INDICATOR ── */
+#music-indicator{
+  position:absolute;bottom:4.5rem;left:50%;transform:translateX(-50%);
+  background:#0d1a24cc;border:1px solid var(--bor);border-radius:8px;
+  padding:.4rem 1rem;font-family:'Orbitron',sans-serif;font-size:.65rem;
+  letter-spacing:.15em;color:var(--mut);z-index:20;backdrop-filter:blur(6px);
+  display:flex;align-items:center;gap:.5rem;transition:color .5s;
+}
+#music-indicator .music-bars{display:flex;align-items:flex-end;gap:2px;height:14px;}
+.mbar{width:3px;border-radius:1px;background:currentColor;animation:mbar-bounce 1s infinite ease;}
+.mbar:nth-child(1){height:6px;animation-delay:0s;}
+.mbar:nth-child(2){height:10px;animation-delay:.1s;}
+.mbar:nth-child(3){height:14px;animation-delay:.2s;}
+.mbar:nth-child(4){height:8px;animation-delay:.3s;}
+.mbar:nth-child(5){height:12px;animation-delay:.15s;}
+@keyframes mbar-bounce{0%,100%{transform:scaleY(.5)}50%{transform:scaleY(1)}}
+#music-indicator.tie{color:var(--cc);}
+#music-indicator.left{color:var(--cl);}
+#music-indicator.right{color:var(--cr);}
+
 /* ── GAME SCREEN ── */
 #game{position:fixed;inset:0;display:none;flex-direction:column;}
-
-/* Canvas SVG de la balanza */
-#balance-canvas{
-  position:absolute;inset:0;z-index:1;
-  background:radial-gradient(ellipse at 50% 30%,#0a1e30 0%,#050a0f 70%);
-}
-
-/* Estrellas CSS */
-#stars-bg{position:absolute;inset:0;z-index:0;overflow:hidden;}
-.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,3s) infinite alternate;}
-@keyframes twinkle{from{opacity:.2}to{opacity:1}}
+#three-canvas{position:absolute;inset:0;z-index:1;}
 
 /* HUD */
 #hud{
@@ -98,7 +165,6 @@ input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
 .tilt-val.left{color:var(--cl);text-shadow:var(--gl);}
 .tilt-val.right{color:var(--cr);text-shadow:var(--gr);}
 .tilt-val.center{color:var(--cc);text-shadow:var(--gc);}
-
 .hud-bottom{
   display:flex;justify-content:center;gap:1rem;padding:1.2rem;
   background:linear-gradient(0deg,#050a0fdd 0%,transparent 100%);
@@ -114,8 +180,6 @@ input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
 .hud-btn.left:hover{background:#00d4ff22;box-shadow:var(--gl);}
 .hud-btn.right:hover{background:#ff4d6d22;box-shadow:var(--gr);}
 .hud-btn.active{opacity:.35;cursor:default;pointer-events:none;}
-
-/* Panel jugadores */
 .players-panel{
   position:absolute;right:1rem;top:5rem;
   background:#0d1a24cc;border:1px solid var(--bor);
@@ -130,14 +194,6 @@ input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
 .pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .pdot.l{background:var(--cl);box-shadow:var(--gl);}
 .pdot.r{background:var(--cr);box-shadow:var(--gr);}
-
-/* Waiting */
-#waiting{
-  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  background:#050a0fcc;border:1px solid var(--bor);border-radius:12px;
-  padding:1rem 2rem;font-family:'Orbitron',sans-serif;font-size:.9rem;
-  color:var(--mut);letter-spacing:.12em;text-align:center;z-index:20;
-}
 </style>
 </head>
 <body>
@@ -159,95 +215,25 @@ input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
   </div>
 </div>
 
+<!-- ═══ WAITING ROOM ═══ -->
+<div id="waiting-room">
+  <div class="wr-card">
+    <div class="wr-orbit"></div>
+    <div class="wr-title">SALA DE ESPERA</div>
+    <div class="wr-subtitle">Esperando que se unan más jugadores…</div>
+    <div class="wr-pulse">
+      <div class="wr-dot"></div>
+      <div class="wr-dot"></div>
+      <div class="wr-dot"></div>
+    </div>
+    <div id="wr-players-list"></div>
+    <div class="wr-status" id="wr-status">Se necesitan al menos 2 jugadores para iniciar</div>
+  </div>
+</div>
+
 <!-- ═══ GAME ═══ -->
 <div id="game">
-  <!-- Fondo estrellas -->
-  <div id="stars-bg"></div>
-
-  <!-- Canvas SVG balanza -->
-  <svg id="balance-canvas" viewBox="0 0 1000 600" preserveAspectRatio="xMidYMid meet">
-    <!-- Fondo gradiente -->
-    <defs>
-      <radialGradient id="bgGrad" cx="50%" cy="30%" r="70%">
-        <stop offset="0%" stop-color="#0a1e30"/>
-        <stop offset="100%" stop-color="#050a0f"/>
-      </radialGradient>
-      <filter id="glow-blue">
-        <feGaussianBlur stdDeviation="4" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-      <filter id="glow-red">
-        <feGaussianBlur stdDeviation="4" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-      <filter id="glow-green">
-        <feGaussianBlur stdDeviation="6" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <rect width="1000" height="600" fill="url(#bgGrad)"/>
-
-    <!-- Soporte central (poste) -->
-    <line x1="500" y1="60" x2="500" y2="200" stroke="#1a3a50" stroke-width="8"/>
-    <!-- Base del soporte -->
-    <rect x="470" y="195" width="60" height="12" rx="4" fill="#1a3a50"/>
-
-    <!-- Pivote central (bola verde) -->
-    <circle id="pivot" cx="500" cy="200" r="14" fill="#a8ff3e" filter="url(#glow-green)"/>
-    <circle cx="500" cy="200" r="7" fill="#050a0f"/>
-
-    <!-- BARRA DE BALANZA (rota desde el centro) -->
-    <g id="bar-group" transform="rotate(0, 500, 200)">
-      <!-- Barra -->
-      <rect id="balance-bar" x="140" y="196" width="720" height="8" rx="4"
-            fill="#a0c0d0" opacity="0.9"/>
-      <!-- Cuerda izquierda -->
-      <line id="rope-left" x1="200" y1="204" x2="200" y2="310" stroke="#e0c080" stroke-width="3"/>
-      <!-- Cuerda derecha -->
-      <line id="rope-right" x1="800" y1="204" x2="800" y2="310" stroke="#e0c080" stroke-width="3"/>
-      <!-- Peso izquierdo -->
-      <g id="weight-left-grp">
-        <rect x="162" y="310" width="76" height="60" rx="8"
-              fill="#00d4ff" opacity="0.85" filter="url(#glow-blue)"/>
-        <rect x="162" y="310" width="76" height="60" rx="8"
-              fill="none" stroke="#00d4ff" stroke-width="2"/>
-        <text x="200" y="347" text-anchor="middle" fill="#050a0f"
-              font-family="Orbitron,sans-serif" font-size="11" font-weight="700">IZQ</text>
-        <!-- Contador dentro del peso -->
-        <text id="weight-left-num" x="200" y="362" text-anchor="middle"
-              fill="#050a0f" font-family="Orbitron,sans-serif" font-size="13" font-weight="900">0</text>
-      </g>
-      <!-- Peso derecho -->
-      <g id="weight-right-grp">
-        <rect x="762" y="310" width="76" height="60" rx="8"
-              fill="#ff4d6d" opacity="0.85" filter="url(#glow-red)"/>
-        <rect x="762" y="310" width="76" height="60" rx="8"
-              fill="none" stroke="#ff4d6d" stroke-width="2"/>
-        <text x="800" y="347" text-anchor="middle" fill="#050a0f"
-              font-family="Orbitron,sans-serif" font-size="11" font-weight="700">DER</text>
-        <text id="weight-right-num" x="800" y="362" text-anchor="middle"
-              fill="#050a0f" font-family="Orbitron,sans-serif" font-size="13" font-weight="900">0</text>
-      </g>
-    </g>
-
-    <!-- Avatares izquierda (se dibujan por JS) -->
-    <g id="avatars-left"></g>
-    <!-- Avatares derecha -->
-    <g id="avatars-right"></g>
-
-    <!-- Suelo -->
-    <rect x="0" y="530" width="1000" height="70" fill="#0a1420"/>
-    <line x1="0" y1="530" x2="1000" y2="530" stroke="#1a3a50" stroke-width="2"/>
-
-    <!-- Zona izquierda label -->
-    <text x="200" y="520" text-anchor="middle" fill="#00d4ff" opacity="0.5"
-          font-family="Orbitron,sans-serif" font-size="13" letter-spacing="3">IZQUIERDA</text>
-    <!-- Zona derecha label -->
-    <text x="800" y="520" text-anchor="middle" fill="#ff4d6d" opacity="0.5"
-          font-family="Orbitron,sans-serif" font-size="13" letter-spacing="3">DERECHA</text>
-  </svg>
-
-  <!-- HUD -->
+  <canvas id="three-canvas"></canvas>
   <div id="hud">
     <div class="hud-top">
       <div class="hud-side hud-left">
@@ -263,30 +249,397 @@ input[type=text]:focus{border-color:var(--cl);box-shadow:var(--gl);}
         <div class="lbl">derecha</div>
       </div>
     </div>
-
     <div class="hud-bottom">
       <button class="hud-btn left" id="btn-go-left" onclick="pickSide('LEFT')">◀ IZQUIERDA</button>
       <button class="hud-btn right" id="btn-go-right" onclick="pickSide('RIGHT')">DERECHA ▶</button>
     </div>
   </div>
-
-  <!-- Panel jugadores -->
   <div class="players-panel">
     <h4>Jugadores</h4>
     <div id="players-list"></div>
   </div>
-
-  <!-- Waiting -->
-  <div id="waiting">Esperando otro jugador…</div>
+  <div id="music-indicator">
+    <div class="music-bars">
+      <div class="mbar"></div><div class="mbar"></div><div class="mbar"></div>
+      <div class="mbar"></div><div class="mbar"></div>
+    </div>
+    <span id="music-label">EMPATE</span>
+  </div>
 </div>
 
 <script>
-// ── SUPABASE CONFIG ──────────────────────────────────────────
+// ══════════════════════════════════════════════
+// SUPABASE
+// ══════════════════════════════════════════════
 const SUPABASE_URL = 'https://uedxajxmliwxdbbhphse.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVlZHhhanhtbGl3eGRiYmhwaHNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyMzAzNTgsImV4cCI6MjA5NDgwNjM1OH0.nZP8wR-52xoR9nwaXAmc00h1zxd51vWnEZJFmPgu464';
 const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── LÓGICA PURA ──────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// MÚSICA ADAPTATIVA (Web Audio API)
+// ══════════════════════════════════════════════
+let audioCtx = null;
+let currentMusicState = null; // 'tie' | 'left' | 'right'
+let musicNodes = {};
+
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function stopMusic() {
+  Object.values(musicNodes).forEach(n => {
+    try { n.stop(); } catch(e) {}
+  });
+  musicNodes = {};
+}
+
+// Música de empate: arpegio neutro y tenso, escala menor natural
+function playTieMusic() {
+  if (!audioCtx) return;
+  stopMusic();
+  const master = audioCtx.createGain();
+  master.gain.setValueAtTime(0.18, audioCtx.currentTime);
+  master.connect(audioCtx.destination);
+  musicNodes._master = master;
+
+  const notes = [220, 261.63, 311.13, 369.99, 440, 369.99, 311.13, 261.63];
+  const stepTime = 0.22;
+  let t = audioCtx.currentTime + 0.05;
+
+  function scheduleLoop() {
+    for (let i = 0; i < notes.length; i++) {
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = notes[i];
+      env.gain.setValueAtTime(0, t + i * stepTime);
+      env.gain.linearRampToValueAtTime(0.7, t + i * stepTime + 0.02);
+      env.gain.exponentialRampToValueAtTime(0.001, t + i * stepTime + stepTime * 0.9);
+      osc.connect(env);
+      env.connect(master);
+      osc.start(t + i * stepTime);
+      osc.stop(t + i * stepTime + stepTime);
+    }
+    const loopDur = notes.length * stepTime;
+    const loopId = setTimeout(() => {
+      if (currentMusicState === 'tie' && audioCtx) scheduleLoop();
+    }, loopDur * 1000 - 60);
+    musicNodes._loopId = loopId;
+  }
+  scheduleLoop();
+
+  // Bajo sostenido
+  const bass = audioCtx.createOscillator();
+  const bassGain = audioCtx.createGain();
+  bass.type = 'sine';
+  bass.frequency.value = 110;
+  bassGain.gain.value = 0.12;
+  bass.connect(bassGain);
+  bassGain.connect(master);
+  bass.start();
+  musicNodes._bass = bass;
+}
+
+// Música de ganando: según qué lado va ganando, tono diferente y ritmo más rápido
+function playWinningMusic(side) {
+  if (!audioCtx) return;
+  stopMusic();
+  const master = audioCtx.createGain();
+  master.gain.setValueAtTime(0.2, audioCtx.currentTime);
+  master.connect(audioCtx.destination);
+  musicNodes._master = master;
+
+  // Izquierda gana: escala mayor ascendente brillante (C mayor), más aguda
+  // Derecha gana: escala pentatónica descendente más grave y agresiva
+  const isLeft = side === 'left';
+  const notes = isLeft
+    ? [261.63, 293.66, 329.63, 392, 440, 523.25, 587.33, 659.25]
+    : [493.88, 440, 392, 349.23, 293.66, 261.63, 220, 196];
+  const stepTime = isLeft ? 0.18 : 0.14;
+  const oscType = isLeft ? 'square' : 'sawtooth';
+
+  let t = audioCtx.currentTime + 0.05;
+
+  function scheduleLoop() {
+    for (let i = 0; i < notes.length; i++) {
+      const osc = audioCtx.createOscillator();
+      const env = audioCtx.createGain();
+      osc.type = oscType;
+      osc.frequency.value = notes[i];
+      env.gain.setValueAtTime(0, t + i * stepTime);
+      env.gain.linearRampToValueAtTime(0.6, t + i * stepTime + 0.015);
+      env.gain.exponentialRampToValueAtTime(0.001, t + i * stepTime + stepTime * 0.85);
+      // Efecto lowpass para la derecha
+      if (!isLeft) {
+        const filt = audioCtx.createBiquadFilter();
+        filt.type = 'lowpass';
+        filt.frequency.value = 800;
+        osc.connect(filt);
+        filt.connect(env);
+      } else {
+        osc.connect(env);
+      }
+      env.connect(master);
+      osc.start(t + i * stepTime);
+      osc.stop(t + i * stepTime + stepTime);
+    }
+    // Percusión simple (ruido corto)
+    for (let i = 0; i < 4; i++) {
+      const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let j = 0; j < data.length; j++) data[j] = (Math.random() * 2 - 1) * (1 - j / data.length);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      const env2 = audioCtx.createGain();
+      env2.gain.value = 0.08;
+      src.connect(env2);
+      env2.connect(master);
+      src.start(t + i * stepTime * 2);
+    }
+
+    const loopDur = notes.length * stepTime;
+    const loopId = setTimeout(() => {
+      if ((currentMusicState === 'left' && side === 'left') ||
+          (currentMusicState === 'right' && side === 'right')) {
+        scheduleLoop();
+      }
+    }, loopDur * 1000 - 60);
+    musicNodes._loopId = loopId;
+  }
+  scheduleLoop();
+
+  // Bajo diferente por bando
+  const bass = audioCtx.createOscillator();
+  const bassGain = audioCtx.createGain();
+  bass.type = 'sine';
+  bass.frequency.value = isLeft ? 130.81 : 98;
+  bassGain.gain.value = 0.15;
+  bass.connect(bassGain);
+  bassGain.connect(master);
+  bass.start();
+  musicNodes._bass = bass;
+}
+
+function updateMusic(state) {
+  let newState;
+  if (state.left === state.right) newState = 'tie';
+  else if (state.left > state.right) newState = 'left';
+  else newState = 'right';
+
+  if (newState === currentMusicState) return;
+  currentMusicState = newState;
+
+  ensureAudio();
+  if (newState === 'tie') {
+    playTieMusic();
+    const mi = document.getElementById('music-indicator');
+    mi.className = 'tie';
+    document.getElementById('music-label').textContent = 'EMPATE';
+  } else {
+    playWinningMusic(newState);
+    const mi = document.getElementById('music-indicator');
+    mi.className = newState;
+    document.getElementById('music-label').textContent =
+      newState === 'left' ? 'IZQUIERDA GANA' : 'DERECHA GANA';
+  }
+}
+
+// ══════════════════════════════════════════════
+// THREE.JS — BALANZA 3D + FONDO ESTRELLADO
+// ══════════════════════════════════════════════
+let scene, camera, renderer, balanceGroup, armMesh, weightLeft, weightRight;
+let currentAngle = 0, targetAngle = 0;
+const clock = new THREE.Clock();
+
+function init3D() {
+  const canvas = document.getElementById('three-canvas');
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x050a0f, 1);
+
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 1.5, 9);
+  camera.lookAt(0, 0.5, 0);
+
+  // ── ESTRELLAS ──
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 2200;
+  const positions = new Float32Array(starCount * 3);
+  const colors = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    const r = 80 + Math.random() * 120;
+    const theta = Math.random() * Math.PI * 2;
+    const phi = Math.acos(2 * Math.random() - 1);
+    positions[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    positions[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    positions[i*3+2] = r * Math.cos(phi);
+    // Variación de color: blanco azulado, blanco, suave amarillo
+    const t = Math.random();
+    colors[i*3]   = 0.85 + t * 0.15;
+    colors[i*3+1] = 0.85 + t * 0.1;
+    colors[i*3+2] = 0.9 + (1 - t) * 0.1;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  starGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  const starMat = new THREE.PointsMaterial({ size: 0.28, vertexColors: true, transparent: true, opacity: 0.85 });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  // Algunas estrellas grandes brillantes
+  const brightGeo = new THREE.BufferGeometry();
+  const bp = new Float32Array(60 * 3);
+  for (let i = 0; i < 60; i++) {
+    bp[i*3] = (Math.random() - 0.5) * 160;
+    bp[i*3+1] = (Math.random() - 0.5) * 80;
+    bp[i*3+2] = -40 - Math.random() * 60;
+  }
+  brightGeo.setAttribute('position', new THREE.BufferAttribute(bp, 3));
+  const brightMat = new THREE.PointsMaterial({ size: 0.7, color: 0xaaddff, transparent: true, opacity: 0.6 });
+  scene.add(new THREE.Points(brightGeo, brightMat));
+
+  // ── NIEBLA ESPACIAL ──
+  scene.fog = new THREE.FogExp2(0x050a0f, 0.004);
+
+  // ── LUZ ──
+  scene.add(new THREE.AmbientLight(0x334455, 1.2));
+  const dirL = new THREE.DirectionalLight(0x88ccff, 2.0);
+  dirL.position.set(5, 8, 5);
+  scene.add(dirL);
+  const dirR = new THREE.DirectionalLight(0xff6688, 1.2);
+  dirR.position.set(-5, 4, 3);
+  scene.add(dirR);
+
+  // ── SOPORTE CENTRAL ──
+  const postMat = new THREE.MeshStandardMaterial({ color: 0x1a3a50, metalness: 0.7, roughness: 0.3 });
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 3.5, 12), postMat);
+  post.position.set(0, -0.25, 0);
+  scene.add(post);
+
+  // Base del soporte
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.7, 0.15, 16), postMat);
+  base.position.set(0, -1.95, 0);
+  scene.add(base);
+
+  // Pivote central (esfera verde brillante)
+  const pivotMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0xa8ff3e, emissive: 0x3a6010, metalness: 0.3, roughness: 0.4 })
+  );
+  pivotMesh.position.set(0, 1.5, 0);
+  scene.add(pivotMesh);
+
+  // ── GRUPO BALANZA ──
+  balanceGroup = new THREE.Group();
+  balanceGroup.position.set(0, 1.5, 0);
+  scene.add(balanceGroup);
+
+  // Barra horizontal
+  const barMat = new THREE.MeshStandardMaterial({ color: 0x90b8cc, metalness: 0.6, roughness: 0.35 });
+  armMesh = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.14, 0.14), barMat);
+  balanceGroup.add(armMesh);
+
+  // Cuerdas (cilindros delgados)
+  const ropeMat = new THREE.MeshStandardMaterial({ color: 0xe0c080, roughness: 0.7 });
+  const ropeGeo = new THREE.CylinderGeometry(0.025, 0.025, 1.2, 6);
+  const ropeL = new THREE.Mesh(ropeGeo, ropeMat);
+  ropeL.position.set(-3, -0.6, 0);
+  balanceGroup.add(ropeL);
+  const ropeR = new THREE.Mesh(ropeGeo, ropeMat);
+  ropeR.position.set(3, -0.6, 0);
+  balanceGroup.add(ropeR);
+
+  // Pesos (cajas)
+  const wMatL = new THREE.MeshStandardMaterial({ color: 0x00d4ff, emissive: 0x004466, metalness: 0.4, roughness: 0.3 });
+  const wMatR = new THREE.MeshStandardMaterial({ color: 0xff4d6d, emissive: 0x440018, metalness: 0.4, roughness: 0.3 });
+  const wGeo = new THREE.BoxGeometry(0.9, 0.7, 0.5);
+
+  weightLeft = new THREE.Mesh(wGeo, wMatL);
+  weightLeft.position.set(-3, -1.55, 0);
+  balanceGroup.add(weightLeft);
+
+  weightRight = new THREE.Mesh(wGeo, wMatR);
+  weightRight.position.set(3, -1.55, 0);
+  balanceGroup.add(weightRight);
+
+  // Bordes luminosos en pesos (wireframe)
+  const edgesL = new THREE.LineSegments(
+    new THREE.EdgesGeometry(wGeo),
+    new THREE.LineBasicMaterial({ color: 0x00d4ff, transparent: true, opacity: 0.7 })
+  );
+  edgesL.position.copy(weightLeft.position);
+  balanceGroup.add(edgesL);
+  const edgesR = new THREE.LineSegments(
+    new THREE.EdgesGeometry(wGeo),
+    new THREE.LineBasicMaterial({ color: 0xff4d6d, transparent: true, opacity: 0.7 })
+  );
+  edgesR.position.copy(weightRight.position);
+  balanceGroup.add(edgesR);
+
+  // ── SUELO ──
+  const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(30, 20),
+    new THREE.MeshStandardMaterial({ color: 0x0a1420, roughness: 0.9 })
+  );
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.y = -4;
+  scene.add(floor);
+
+  // Grid sutil en el suelo
+  const grid = new THREE.GridHelper(30, 30, 0x1a3a50, 0x0d1e28);
+  grid.position.y = -3.98;
+  scene.add(grid);
+
+  window.addEventListener('resize', onResize);
+  animate3D();
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+let starRotSpeed = 0.00008;
+function animate3D() {
+  requestAnimationFrame(animate3D);
+  const dt = clock.getDelta();
+
+  // Rotación suave de la balanza hacia el ángulo objetivo
+  currentAngle += (targetAngle - currentAngle) * Math.min(dt * 2.5, 1);
+  if (balanceGroup) {
+    balanceGroup.rotation.z = currentAngle;
+    // Micro-oscilación para dar vida
+    balanceGroup.rotation.z += Math.sin(Date.now() * 0.001) * 0.003;
+  }
+
+  // Leve movimiento de cámara
+  camera.position.x = Math.sin(Date.now() * 0.0002) * 0.5;
+  camera.position.y = 1.5 + Math.sin(Date.now() * 0.00015) * 0.2;
+  camera.lookAt(0, 0.5, 0);
+
+  // Pulsación de pesos según estado
+  const pulse = 1 + Math.sin(Date.now() * 0.004) * 0.025;
+  if (weightLeft) weightLeft.scale.set(pulse, 1 / pulse, pulse);
+  if (weightRight) weightRight.scale.set(1 / pulse, pulse, 1 / pulse);
+
+  renderer.render(scene, camera);
+}
+
+function setBalanceAngle(leftCount, rightCount) {
+  const diff = leftCount - rightCount;
+  const maxDeg = 25;
+  const maxDiff = 8;
+  targetAngle = (diff / maxDiff) * (maxDeg * Math.PI / 180);
+  targetAngle = Math.max(-maxDeg * Math.PI / 180, Math.min(maxDeg * Math.PI / 180, targetAngle));
+}
+
+// ══════════════════════════════════════════════
+// LÓGICA PURA
+// ══════════════════════════════════════════════
 function validateAlias(alias) {
   if (typeof alias !== 'string') return { valid: false, error: 'Alias inválido.' };
   const t = alias.trim();
@@ -309,23 +662,15 @@ function getGameState(players){
   return {left,right,offset,tilt:getTiltDirection(offset),canStart:players.length>=2};
 }
 
-// ── ESTADO ───────────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// ESTADO
+// ══════════════════════════════════════════════
 let myId=crypto.randomUUID(), myAlias='', mySide=null, players=[];
 const $=id=>document.getElementById(id);
 
-// ── STARS ────────────────────────────────────────────────────
-function initStars(){
-  const bg=$('stars-bg');
-  for(let i=0;i<120;i++){
-    const s=document.createElement('div');
-    s.className='star';
-    const sz=Math.random()*2.5+.5;
-    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*60}%;--d:${2+Math.random()*4}s;opacity:${Math.random()*.8+.2}`;
-    bg.appendChild(s);
-  }
-}
-
-// ── LOGIN UI ─────────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// LOGIN UI
+// ══════════════════════════════════════════════
 document.querySelectorAll('.side-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.side-btn').forEach(b=>b.classList.remove('selected'));
@@ -339,6 +684,33 @@ function updateBtn(){
   const v=validateAlias($('alias-input').value);
   $('enter-btn').disabled=!(v.valid&&mySide);
 }
+
+const AVATAR_COLORS=['#00d4ff','#ff4d6d','#a8ff3e','#ffcc00','#c084fc','#fb923c','#34d399','#f472b6'];
+function avatarColor(alias){ return AVATAR_COLORS[(alias.charCodeAt(0)||0)%AVATAR_COLORS.length]; }
+
+// Sala de espera render
+function renderWaitingRoom() {
+  const list = $('wr-players-list');
+  list.innerHTML = '';
+  players.forEach(p => {
+    const col = avatarColor(p.alias);
+    const div = document.createElement('div');
+    div.className = 'wr-player-card';
+    div.innerHTML = `
+      <div class="wr-avatar" style="background:${col}">${p.alias.charAt(0).toUpperCase()}</div>
+      <div>
+        <div class="wr-name">${p.alias}${p.id===myId?' ✦':''}</div>
+        <div class="wr-side ${p.side==='LEFT'?'l':'r'}">${p.side==='LEFT'?'◀ Izquierda':'Derecha ▶'}</div>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+  const cnt = players.length;
+  $('wr-status').textContent = cnt >= 2
+    ? `${cnt} jugador${cnt>1?'es':''} conectado${cnt>1?'s':''} — ¡listo para jugar!`
+    : 'Se necesitan al menos 2 jugadores para iniciar';
+}
+
 $('enter-btn').addEventListener('click',async()=>{
   const aliasRaw=$('alias-input').value.trim();
   const v=validateAlias(aliasRaw);
@@ -350,7 +722,7 @@ $('enter-btn').addEventListener('click',async()=>{
   try{
     const {error}=await sbClient.from('tug_players').upsert({id:myId,alias:myAlias,side:mySide});
     if(error)throw error;
-    startGame();
+    startSession();
   }catch(err){
     console.error(err);
     $('err-msg').textContent='Error de conexión.';
@@ -359,13 +731,13 @@ $('enter-btn').addEventListener('click',async()=>{
   }
 });
 
-// ── HEARTBEAT ───────────────────────────────────────────
+// ══════════════════════════════════════════════
+// HEARTBEAT
+// ══════════════════════════════════════════════
 let heartbeatInterval = null;
-
 async function sendHeartbeat() {
   await sbClient.from("tug_players").update({ last_seen: new Date().toISOString() }).eq("id", myId);
 }
-
 async function cleanDeadPlayers() {
   const cutoff = new Date(Date.now() - 30000).toISOString();
   await sbClient.from("tug_players").delete().lt("last_seen", cutoff);
@@ -373,31 +745,55 @@ async function cleanDeadPlayers() {
   renderScene();
 }
 
-// ── START ────────────────────────────────────────────────────
-async function startGame(){
+// ══════════════════════════════════════════════
+// FLUJO: LOGIN → WAITING ROOM → GAME
+// ══════════════════════════════════════════════
+async function startSession(){
   $('overlay').style.display='none';
-  $('game').style.display='block';
-  initStars();
   await fetchAllPlayers();
-  renderScene();
+
+  // Suscribir realtime
   sbClient.channel('tug_room')
     .on('postgres_changes',{event:'*',schema:'public',table:'tug_players'},payload=>{
       handleRT(payload);
     }).subscribe();
+
   window.addEventListener('beforeunload', removeMyself);
-  // Heartbeat: avisar cada 15s que sigo activo + limpiar fantasmas
   sendHeartbeat();
   heartbeatInterval = setInterval(async () => {
     sendHeartbeat();
     await cleanDeadPlayers();
   }, 15000);
+
+  checkPhase();
+}
+
+function checkPhase(){
+  const state = getGameState(players);
+  if(!state.canStart){
+    // Mostrar sala de espera
+    $('waiting-room').classList.add('visible');
+    $('game').style.display='none';
+    renderWaitingRoom();
+  } else {
+    // Entrar al juego
+    $('waiting-room').classList.remove('visible');
+    if($('game').style.display !== 'flex' && $('game').style.display !== 'block'){
+      $('game').style.display='block';
+      // Iniciar Three.js solo una vez
+      if(!renderer) init3D();
+      // Activar audio en primer gesto — usuario ya hizo click en "entrar"
+      ensureAudio();
+    }
+    renderScene();
+  }
 }
 
 function handleRT({eventType,new:row,old}){
   if(eventType==='INSERT'){ if(!players.find(p=>p.id===row.id))players.push(row); }
   else if(eventType==='UPDATE'){ const i=players.findIndex(p=>p.id===row.id); if(i>=0)players[i]=row; else players.push(row); }
   else if(eventType==='DELETE'){ players=players.filter(p=>p.id!==old.id); }
-  renderScene();
+  checkPhase();
 }
 async function fetchAllPlayers(){
   const {data,error}=await sbClient.from('tug_players').select('*');
@@ -411,26 +807,24 @@ async function pickSide(side){
 }
 async function removeMyself(){ await sbClient.from('tug_players').delete().eq('id',myId); }
 
-// ── COLORES AVATAR ───────────────────────────────────────────
-const COLORS=['#00d4ff','#ff4d6d','#a8ff3e','#ffcc00','#c084fc','#fb923c','#34d399','#f472b6'];
-
-// ── RENDER ───────────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// RENDER ESCENA JUEGO
+// ══════════════════════════════════════════════
 function renderScene(){
   const state=getGameState(players);
 
-  // HUD texto
+  // Si ya no hay suficientes jugadores, volver a waiting
+  if(!state.canStart){ checkPhase(); return; }
+
+  // HUD
   $('hud-left-count').textContent=state.left;
   $('hud-right-count').textContent=state.right;
   const tiltEl=$('hud-tilt');
   tiltEl.textContent={LEFT:'IZQUIERDA',CENTER:'CENTRO',RIGHT:'DERECHA'}[state.tilt];
   tiltEl.className='tilt-val '+state.tilt.toLowerCase();
 
-  // Botones
   $('btn-go-left').classList.toggle('active',mySide==='LEFT');
   $('btn-go-right').classList.toggle('active',mySide==='RIGHT');
-
-  // Waiting
-  $('waiting').style.display=state.canStart?'none':'block';
 
   // Lista jugadores
   const list=$('players-list'); list.innerHTML='';
@@ -443,87 +837,11 @@ function renderScene(){
     item.append(dot,name); list.appendChild(item);
   });
 
-  // ── BALANZA SVG ──
-  const maxOff=200, maxDeg=25;
-  const clamp=Math.max(-maxOff,Math.min(maxOff,state.offset));
-  const deg=(clamp/maxOff)*maxDeg;
-  $('bar-group').setAttribute('transform',`rotate(${deg},500,200)`);
+  // Balanza 3D
+  setBalanceAngle(state.left, state.right);
 
-  // Números en los pesos
-  $('weight-left-num').textContent=state.left;
-  $('weight-right-num').textContent=state.right;
-
-  // ── AVATARES SVG ──
-  renderAvatars(state);
-}
-
-function renderAvatars(state){
-  const leftP=players.filter(p=>p.side==='LEFT');
-  const rightP=players.filter(p=>p.side==='RIGHT');
-
-  const gL=$('avatars-left'); gL.innerHTML='';
-  const gR=$('avatars-right'); gR.innerHTML='';
-
-  // Obtenemos la rotación actual para posicionar avatares
-  const maxOff=200,maxDeg=25;
-  const clamp=Math.max(-maxOff,Math.min(maxOff,state.offset));
-  const deg=(clamp/maxOff)*maxDeg;
-  const rad=deg*Math.PI/180;
-
-  // Posición base de los pesos en el sistema rotado
-  const pivotX=500,pivotY=200;
-  const armL=300; // distancia del pivote al peso izq
-  const armR=300; // distancia del pivote al peso der
-
-  // Centro del peso izquierdo rotado
-  const lx=pivotX+(-armL)*Math.cos(rad)-0*Math.sin(rad);
-  const ly=pivotY+(-armL)*Math.sin(rad)+0*Math.cos(rad)+110;
-  // Centro del peso derecho rotado
-  const rx=pivotX+(armR)*Math.cos(rad)-0*Math.sin(rad);
-  const ry=pivotY+(armR)*Math.sin(rad)+0*Math.cos(rad)+110;
-
-  const placeAvatars=(group,pList,baseX,baseY)=>{
-    pList.forEach((p,i)=>{
-      const col=i%3, row=Math.floor(i/3);
-      const dx=(col-1)*36;
-      const dy=row*40;
-      const cx=baseX+dx, cy=baseY+dy+60;
-      const color=COLORS[(p.alias.charCodeAt(0)||0)%COLORS.length];
-      const ns='http://www.w3.org/2000/svg';
-
-      // Círculo avatar
-      const circle=document.createElementNS(ns,'circle');
-      circle.setAttribute('cx',cx); circle.setAttribute('cy',cy);
-      circle.setAttribute('r','16');
-      circle.setAttribute('fill',color);
-      circle.setAttribute('opacity','0.9');
-      group.appendChild(circle);
-
-      // Inicial del alias
-      const txt=document.createElementNS(ns,'text');
-      txt.setAttribute('x',cx); txt.setAttribute('y',cy+5);
-      txt.setAttribute('text-anchor','middle');
-      txt.setAttribute('fill','#050a0f');
-      txt.setAttribute('font-family','Orbitron,sans-serif');
-      txt.setAttribute('font-size','12');
-      txt.setAttribute('font-weight','700');
-      txt.textContent=p.alias.charAt(0).toUpperCase();
-      group.appendChild(txt);
-
-      // Nombre debajo
-      const name=document.createElementNS(ns,'text');
-      name.setAttribute('x',cx); name.setAttribute('y',cy+32);
-      name.setAttribute('text-anchor','middle');
-      name.setAttribute('fill',color);
-      name.setAttribute('font-family','Rajdhani,sans-serif');
-      name.setAttribute('font-size','10');
-      name.textContent=p.alias.length>8?p.alias.slice(0,7)+'…':p.alias;
-      group.appendChild(name);
-    });
-  };
-
-  placeAvatars(gL,leftP,lx,ly);
-  placeAvatars(gR,rightP,rx,ry);
+  // Música
+  updateMusic(state);
 }
 </script>
 </body>
